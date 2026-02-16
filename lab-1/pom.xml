@@ -38,7 +38,6 @@
                             <!-- Создаем исполняемый JAR с указанием главного класса -->
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <!-- ВНИМАНИЕ!!! Тут должен быть твой пакет/Main, это просто пример!!! -->
                                     <mainClass>com.sakunov.labs.Main</mainClass>
                                 </transformer>
                             </transformers>
