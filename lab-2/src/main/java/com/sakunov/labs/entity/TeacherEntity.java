@@ -1,28 +1,21 @@
 package com.sakunov.labs.entity;
 
-// Модель данных учитель
+// Сущность учителя
 public class TeacherEntity {
-    // Тип Integer, а не int
-    // int: не может быть null (по умолчанию 0), Integer: может быть null (ещё не сохранён в БД)
-    // У новой сущности, ещё не сохранённой в БД, id = null
-    private Integer id;             // Идентификатор
-    private String name;            // Имя
-    private Integer experienceYears;// Стаж работы
+    private Integer id;
+    private String name;
+    private Integer experienceYears;
 
-    // Конструктор по умолчанию
     public TeacherEntity() {
     }
 
     // Конструктор для создания нового учителя (без id)
-    // Используется, когда мы создаём учителя для сохранения в БД
-    // ID ещё не известен, его сгенерирует БД
     public TeacherEntity(String name, Integer experienceYears) {
         this.name = name;
         this.experienceYears = experienceYears;
     }
 
-    // Конструктор для полного обновления учителя
-    // Используется, когда мы загружаем учителя из БД или обновляем его
+    // Конструктор для обновления учителя
     public TeacherEntity(Integer id, String name, Integer experienceYears) {
         this.id = id;
         this.name = name;

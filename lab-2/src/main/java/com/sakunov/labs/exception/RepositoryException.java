@@ -1,10 +1,8 @@
 package com.sakunov.labs.exception;
 
-// Кастомные исключения
+// Исключения для ошибок репозитория
 public class RepositoryException extends RuntimeException {
-    // Конструктор с двумя параметрами. Передаём сообщение и причину в родительский класс
-    // message - сообщение об ошибке, cause - причина ошибки
-    // super() - вызов конструктора родительского класса
+    // Конструктор с сообщением и причиной
     public RepositoryException(String message, Throwable cause) {
         super(message, cause);
     }

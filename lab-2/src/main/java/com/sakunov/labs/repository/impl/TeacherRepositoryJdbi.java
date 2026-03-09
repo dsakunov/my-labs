@@ -6,11 +6,10 @@ import com.sakunov.labs.exception.RepositoryException;
 import com.sakunov.labs.repository.TeacherDao;
 import com.sakunov.labs.repository.TeacherMapper;
 import com.sakunov.labs.repository.TeacherRepository;
-
-// Главный класс JDBI
 import org.jdbi.v3.core.Jdbi;
-// Позволяет использовать аннотации в интерфейсах, чтобы не писать вручную весь код для работы с БД
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -18,36 +17,38 @@ import java.util.Optional;
 
 // Реализация репозитория через JDBI
 public class TeacherRepositoryJdbi implements TeacherRepository {
+    private static final Logger log = LoggerFactory.getLogger(TeacherRepositoryJdbi.class);
 
-    private final Jdbi jdbi;        // Главный класс библиотеки
-    private final TeacherDao dao;   // Интерфейс с аннотациями
+    private final Jdbi jdbi;        // Основной объект JDBI
+    private final TeacherDao dao;   // Реализация интерфейса с аннотациями
 
     // Конструктор репозитория
-    public TeacherRepositoryJdbi() {
+    public TeacherRepositoryJdbi(DatabaseConfig databaseConfig) {
         try {
-            // Создаем экземпляр Jdbi с connection pool от HikariCP
-            this.jdbi = Jdbi.create(DatabaseConfig.getConnection());
+            // Создаем экземпляр JDBI с соединением из пула HikariCP
+            this.jdbi = Jdbi.create(databaseConfig.getConnection());
 
-            // Устанавливаем plugin для поддержки sql object
+            // Подключаем плагин для работы с аннотациями (@SqlUpdate, @SqlQuery)
             this.jdbi.installPlugin(new SqlObjectPlugin());
 
-            // Регистрируем маппер для преобразования строк ResultSet в объекты TeacherEntity
+            // Регистрируем маппер для преобразования ResultSet в TeacherEntity
             this.jdbi.registerRowMapper(new TeacherMapper());
 
-            // Создает объект, реализующий интерфейс TeacherDao
-            // onDemand - методы DAO выполняются немедленно, каждый раз создавая новое соединение (из пула)
+            // Создаем объект, реализующий интерфейс TeacherDao
             this.dao = jdbi.onDemand(TeacherDao.class);
         } catch (SQLException e) {
+            log.error("Ошибка инициализации JDBI", e);
             throw new RepositoryException("Ошибка инициализации JDBI", e);
         }
     }
 
-    // Метод сохранения нового учителя
+    // Сохранение нового учителя
     @Override
     public int save(TeacherEntity teacher) {
         try {
-            // JDBI автоматически вставляет и возвращает сгенерированный ID
+            // JDBI сам выполнит INSERT и вернет сгенерированный id
             int id = dao.insert(teacher);
+
             teacher.setId(id);
             return id;
         } catch (Exception e) {
@@ -55,7 +56,7 @@ public class TeacherRepositoryJdbi implements TeacherRepository {
         }
     }
 
-    // Метод поиска учителя по id
+    // Поиск учителей по id
     @Override
     public Optional<TeacherEntity> findById(int id) {
         try {
@@ -65,7 +66,7 @@ public class TeacherRepositoryJdbi implements TeacherRepository {
         }
     }
 
-    // Метод для получения списка всех учителей
+    // Получение списка всех учителей
     @Override
     public List<TeacherEntity> findAll() {
         try {
@@ -75,30 +76,26 @@ public class TeacherRepositoryJdbi implements TeacherRepository {
         }
     }
 
-    // Метод для обновления данных учителя
     @Override
     public boolean update(TeacherEntity teacher) {
-        if (teacher.getId() == null) { // защита от попытки обновить объект без id
+        if (teacher.getId() == null) { // Защита от обновления объекта без id
+            log.warn("Попытка обновления учителя без id");
             return false;
         }
 
         try {
-            // Выполняем update и получаем количество изменённых строк
-            int updatedRows = dao.update(teacher);
-
-            // Если обновлена хотя бы одна строка - успех
-            return updatedRows > 0;
+            int updatedRows = dao.update(teacher);  // Возвращает количество обновленных строк
+            return updatedRows > 0;                 // Если обновлена хотя бы одна строка - успех
         } catch (Exception e) {
             throw new RepositoryException("Ошибка при обновлении учителя с id: " + teacher.getId(), e);
         }
     }
 
-    // Метод для удаления учителя по id
+    // Удаление учителя по id
     @Override
     public void deleteById(int id) {
         try {
-            dao.deleteById(id);
-            // Не возвращаем результат, так как идемпотентность гарантирует безопасность
+            dao.deleteById(id); // Идемпотентная операция - можно вызывать много раз
         } catch (Exception e) {
             throw new RepositoryException("Ошибка при удалении учителя с id: " + id, e);
         }

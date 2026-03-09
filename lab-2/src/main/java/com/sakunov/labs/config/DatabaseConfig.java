@@ -1,79 +1,78 @@
 package com.sakunov.labs.config;
 
-import com.zaxxer.hikari.HikariConfig;      // Класс для настройки пула соединений
-import com.zaxxer.hikari.HikariDataSource;  // Сам пул соединений
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.sql.Connection;     // Интерфейс для соединения с бд
-import java.sql.SQLException;   // Исключения для ошибок SQL
+import java.sql.Connection;
+import java.sql.SQLException;
 
+// Конфигурация подключения к бд
 public class DatabaseConfig {
-    // Строка подключения к бд
-    // jdbc:postgresql://[хост]:[порт]/[имя_базы]
-    // Порт 5432 был занят, поэтому использовал 5433
-    private static final String JDBC_URL = "jdbc:postgresql://localhost:5433/teacherdb";
+    // Создаем логгер для этого класса
+    private static final Logger log = LoggerFactory.getLogger(DatabaseConfig.class);
 
-    // Имя пользователя
-    private static final String USERNAME = "teacher";
+    // Пул соединений HikariCP
+    private final HikariDataSource dataSource;
 
-    // Пароль пользователя
-    private static final String PASSWORD = "teacher123";
+    public DatabaseConfig() {
+        // Читаем параметры из переменных окружения
+        String jdbcUrl = System.getenv("DB_URL");
+        String username = System.getenv("DB_USERNAME");
+        String password = System.getenv("DB_PASSWORD");
 
-    // Реализация пула соединений
-    // DataSource - это стандартный интерфейс для получения соединений с БД
-    // HikariCP предоставляет его реализацию
-    private static final HikariDataSource dataSource;
+        // Если переменные не заданы, используем значения по умолчанию
+        if (jdbcUrl == null) {
+            jdbcUrl = "jdbc:postgresql://localhost:5433/teacherdb";
+            log.warn("DB_URL не задан, используем значение по умолчанию: {}", jdbcUrl);
+        }
+        if (username == null) {
+            username = "teacher";
+            log.warn("DB_USERNAME не задан, используем значение по умолчанию: {}", username);
+        }
+        if (password == null) {
+            password = "teacher123";
+            log.warn("DB_PASSWORD не задан, используем значение по умолчанию");
+        }
 
-    static {
         try {
-            // Загружаем JDBC драйвер
-            // JDBC - API для работы с БД
-            // Драйвер - реализация интерфейсов для бд
-            Class.forName("org.postgresql.Driver"); // Динамическая загрузка класса драйвера
-            System.out.println("\nPostgreSQL JDBC Driver зарегистрирован.");
+            // Загружаем драйвер
+            Class.forName("org.postgresql.Driver");
+            log.info("PostgreSQL JDBC Driver зарегистрирован");
 
-            // Настройка пула
-            // HikariConfig - класс для настройки параметров пула
+            // Настройка пула соединений
             HikariConfig config = new HikariConfig();
-            config.setJdbcUrl(JDBC_URL);    // Куда подключиться
-            config.setUsername(USERNAME);   // Кто подключается
-            config.setPassword(PASSWORD);   // Пароль
+            config.setJdbcUrl(jdbcUrl);
+            config.setUsername(username);
+            config.setPassword(password);
 
-            // Настройки пула соединений
-            config.setMaximumPoolSize(10);        // Максимальное число соединений
-            config.setMinimumIdle(5);             // Минимальное количество соединений, которые пул всегда держит открытыми
-            config.setIdleTimeout(300000);        // Время простоя соединения (5 минут)
-            config.setConnectionTimeout(30000);   // Сколько ждать соединения из пула, прежде чем упасть с ошибкой (30 секунд)
-            config.setMaxLifetime(1800000);       // Максимальное время жизни соединения (30 минут)
+            config.setMaximumPoolSize(10);      // Макс. число соединений
+            config.setMinimumIdle(5);           // Мин. кол-во соединений, которые пул всегда держит открытыми
+            config.setIdleTimeout(300000);      // Время простоя соединения (5 минут)
+            config.setConnectionTimeout(30000); // Сколько ждать соединения из пула, прежде чем упасть с ошибкой (30 секунд)
+            config.setMaxLifetime(1800000);     // Макс. время жизни соединения (30 минут)
 
             // Создание пула
-            // Создаем пул соединений с настройками
-            // В этот момент HikariCP пытается создать minimumIdle соединений (если бд недоступна -> ошибка)
             dataSource = new HikariDataSource(config);
-            System.out.println("HikariCP connection pool инициализирован.");
-        } catch (ClassNotFoundException e) { // Если драйвер PostgreSQL не найден
-            System.err.println("PostgreSQL JDBC Driver не найден!");
+            log.info("HikariCP connection pool инициализирован");
+
+        } catch (ClassNotFoundException e) {
+            log.error("PostgreSQL JDBC Driver не найден", e);
             throw new RuntimeException("Driver not found", e);
         }
     }
 
-    // Приватный конструктор
-    private DatabaseConfig() {
-    }
-
     // Получение соединения из пула
-    // @return Connection - соединение с бд из пула
-    // @throws SQLException - если соединение не может быть установлено
-    public static Connection getConnection() throws SQLException {
+    public Connection getConnection() throws SQLException {
         return dataSource.getConnection();
     }
 
     // Закрытие пула соединений
-    // dataSource != null - защита от случая, если пул не удалось инициализировать
-    // !dataSource.isClosed() - проверяем, не закрыт ли уже пул, чтобы не закрывать дважды
-    public static void close() {
+    public void close() {
         if (dataSource != null && !dataSource.isClosed()) {
             dataSource.close();
-            System.out.println("HikariCP connection pool закрыт.");
+            log.info("HikariCP connection pool закрыт");
         }
     }
 }

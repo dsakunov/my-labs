@@ -3,29 +3,35 @@ package com.sakunov.labs;
 import com.sakunov.labs.config.DatabaseConfig;
 import com.sakunov.labs.entity.TeacherEntity;
 import com.sakunov.labs.exception.RepositoryException;
+import com.sakunov.labs.migration.DatabaseMigrator;
 import com.sakunov.labs.repository.TeacherRepository;
 import com.sakunov.labs.repository.impl.TeacherRepositoryJdbi;
 import com.sakunov.labs.util.DatabaseInitializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
 
 public class Main {
+    private static final Logger log = LoggerFactory.getLogger(Main.class);
     private static final Scanner scanner = new Scanner(System.in);
     private static TeacherRepository teacherRepository;
+    private static DatabaseConfig databaseConfig;
 
     public static void main(String[] args) {
         try {
-            // Инициализация базы данных через Liquibase миграции
-            // Метод внутри себя вызывает Liquibase
-            // Liquibase проверяет, какие миграции уже были применены, и применяет только новые
-            DatabaseInitializer.createTableIfNotExists();
+            // Инициализация подключения к БД
+            databaseConfig = new DatabaseConfig();
+
+            // Запуск миграций Liquibase
+            DatabaseMigrator migrator = new DatabaseMigrator(databaseConfig);
+            DatabaseInitializer initializer = new DatabaseInitializer(migrator);
+            initializer.createTableIfNotExists();
 
             // Создание репозитория
-            // TeacherRepositoryJdbi - реализация через JDBI
-            // JDBI внутри использует HikariCP для получения соединений из пула
-            teacherRepository = new TeacherRepositoryJdbi();
+            teacherRepository = new TeacherRepositoryJdbi(databaseConfig);
 
             // Заполнение 10 учителями (если бд пуста)
             initializeWithTenTeachers();
@@ -34,31 +40,27 @@ public class Main {
             runInteractiveMenu();
 
         } catch (RepositoryException e) {
-            System.err.println("\nОшибка репозитория: " + e.getMessage());
+            log.error("Ошибка репозитория: {}", e.getMessage());
             if (e.getCause() != null) {
-                System.err.println("Причина: " + e.getCause().getMessage());
+                log.error("Причина: {}", e.getCause().getMessage());
             }
         } catch (Exception e) {
-            System.err.println("\nНеожиданная ошибка: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Неожиданная ошибка", e);
         } finally {
             scanner.close();
-
-            // Закрываем HikariCP connection pool
-            DatabaseConfig.close();
-            System.out.println("Приложение завершено!");
+            if (databaseConfig != null) {
+                databaseConfig.close(); // Закрываем пул соединений
+            }
+            log.info("Приложение завершено");
         }
     }
 
-    // Метод инициализации бд 10 учителями
+    // Заполнение бд 10 учителями
     private static void initializeWithTenTeachers() {
-        // Проверяем, есть ли уже данные
-        // findAll возвращает список всех учителей из бд
         List<TeacherEntity> existingTeachers = teacherRepository.findAll();
 
-        // Если список не пустой, значит данные уже есть, не инициализируем
         if (!existingTeachers.isEmpty()) {
-            System.out.println("\nВ базе уже есть " + existingTeachers.size() + " учителей. Пропускаем инициализацию.");
+            log.info("В базе уже есть {} учителей. Пропускаем инициализацию", existingTeachers.size());
             return;
         }
 
@@ -78,28 +80,22 @@ public class Main {
         // Стаж работы
         int[] experiences = {10, 5, 15, 8, 12, 3, 20, 7, 25, 4};
 
-        System.out.println("\nСоздание 10 тестовых учителей:");
+        log.info("Создание 10 тестовых учителей:");
 
-        // Цикл создания 10 учителей
         for (int i = 0; i < names.length; i++) {
-            // Создаем объект учителя с именем и стажем из массивов
             TeacherEntity teacher = new TeacherEntity(names[i], experiences[i]);
-
-            // Сохраняем учителя в бд и получаем сгенерированный id
-            // save() возвращает автоматически сгенерированный базой данных ID
             int id = teacherRepository.save(teacher);
-
-            System.out.println("  " + (i+1) + ". " + teacher + " (id: " + id + ")");
+            log.info("  {}. {} (id: {})", i+1, teacher, id);
         }
-        System.out.println("Инициализация завершена. В базе теперь " + teacherRepository.findAll().size() + " учителей.");
+        log.info("Инициализация завершена. В базе теперь {} учителей", teacherRepository.findAll().size());
     }
 
-    // Метод для запуска меню
+    // Запуск меню
     private static void runInteractiveMenu() {
         boolean running = true;
 
         while (running) {
-            printMenu(); // Вывод меню
+            printMenu();
             System.out.print("Выберите действие: ");
             String choice = scanner.nextLine().trim();
 
@@ -121,7 +117,7 @@ public class Main {
                     break;
                 case "6":
                     running = false;
-                    System.out.println("\nВыход из программы...");
+                    log.info("Выход из программы...");
                     break;
                 default:
                     System.out.println("\nОшибка! Неверный выбор. Пожалуйста, введите число от 1 до 6.");
@@ -129,7 +125,6 @@ public class Main {
         }
     }
 
-    // Метод для вывода меню
     private static void printMenu() {
         System.out.println("\n========== МЕНЮ ==========");
         System.out.println("1. Создать нового учителя");
@@ -140,7 +135,7 @@ public class Main {
         System.out.println("6. Выход");
     }
 
-    // Метод для создания нового учителя
+    // Создание нового учителя
     private static void createTeacher() {
         System.out.print("\nВведите имя учителя: ");
         String name = scanner.nextLine().trim();
@@ -148,20 +143,16 @@ public class Main {
         int experience = 0;
         boolean validInput = false;
 
-        // Цикл до тех пор, пока не будет введено корректное значение
         while (!validInput) {
             System.out.print("Введите стаж работы (лет): ");
             try {
-                // Пытаемся преобразовать ввод в число
                 experience = Integer.parseInt(scanner.nextLine().trim());
-
-                // Проверка на отрицательное значение
                 if (experience < 0) {
                     System.out.println("Ошибка! Стаж не может быть отрицательным.\n");
                 } else {
                     validInput = true;
                 }
-            } catch (NumberFormatException e) { // И случай, если введено не число
+            } catch (NumberFormatException e) {
                 System.out.println("Ошибка! Некорректное значение.\n");
             }
         }
@@ -169,11 +160,11 @@ public class Main {
         // Создаем объект и сохраняем в бд
         TeacherEntity teacher = new TeacherEntity(name, experience);
         int id = teacherRepository.save(teacher);
-        System.out.println("\nУчитель успешно создан! ID: " + id);
+        log.info("Учитель успешно создан! ID: {}", id);
         System.out.println("Создан: " + teacher);
     }
 
-    // Метод для поиска учителя по id
+    // Поиск учителя по id
     private static void findTeacherById() {
         int id = 0;
         boolean validInput = false;
@@ -188,24 +179,17 @@ public class Main {
             }
         }
 
-        // Optional - контейнер, который может содержать или не содержать значение
         Optional<TeacherEntity> teacherOpt = teacherRepository.findById(id);
-
-        // isPresent() возвращает true, если значение есть
         if (teacherOpt.isPresent()) {
-            // get() извлекает значение из Optional
             System.out.println("Найден учитель: " + teacherOpt.get());
         } else {
             System.out.println("Учитель с ID " + id + " не найден.");
         }
     }
 
-    // Метод для вывода всех учителей
+    // Вывод всех учителей
     private static void findAllTeachers() {
-        // Получение данных
         List<TeacherEntity> teachers = teacherRepository.findAll();
-
-        // Проверка на пустоту
         if (teachers.isEmpty()) {
             System.out.println("\nВ базе данных нет учителей.");
         } else {
@@ -216,7 +200,7 @@ public class Main {
         }
     }
 
-    // Метод для
+    // Обновление данных об учителе
     private static void updateTeacher() {
         int id = 0;
         boolean validId = false;
@@ -235,57 +219,46 @@ public class Main {
         Optional<TeacherEntity> existingTeacher = teacherRepository.findById(id);
         if (existingTeacher.isEmpty()) {
             System.out.println("\nУчитель с ID " + id + " не найден. Обновление невозможно.");
-            return; // В таком случае сразу выходим
+            return;
         }
 
-        // Вывод текущих данных
         System.out.println("\nТекущие данные: " + existingTeacher.get());
         System.out.println("(Оставьте поле пустым, чтобы оставить без изменений)");
 
-        // Ввод нового имени
         System.out.print("Смена имени: " + existingTeacher.get().getName() + " -> ");
         String name = scanner.nextLine().trim();
         if (name.isEmpty()) {
             name = existingTeacher.get().getName();
         }
 
-        // И нового стажа
         int experience = existingTeacher.get().getExperienceYears();
         System.out.print("Смена стажа: " + experience + " -> ");
         String expInput = scanner.nextLine().trim();
 
-        // Если поле не пустое, пытаемся преобразовать в число
         if (!expInput.isEmpty()) {
             try {
                 experience = Integer.parseInt(expInput);
-
-                // Проверка на отрицательное значение
                 if (experience < 0) {
                     System.out.println("\nОшибка! Стаж не может быть отрицательным. Оставлено прежнее значение.");
-                    experience = existingTeacher.get().getExperienceYears(); // Тогда возвращаем старое значение
+                    experience = existingTeacher.get().getExperienceYears();
                 }
             } catch (NumberFormatException e) {
                 System.out.println("Ошибка! Некорректное значение. Оставлено прежнее значение.");
             }
         }
 
-        // Создание обновленного объекта
         TeacherEntity updatedTeacher = new TeacherEntity(id, name, experience);
-
-        // update() возвращает true, если обновление успешно (затронута хотя бы 1 строка)
         boolean success = teacherRepository.update(updatedTeacher);
 
         if (success) {
             System.out.println("\nДанные учителя успешно обновлены!");
-
-            // Повторный запрос из БД для отображения актуальных данных
             System.out.println("Обновленный учитель: " + teacherRepository.findById(id).get());
         } else {
             System.out.println("\nОшибка! Не удалось обновить данные учителя.");
         }
     }
 
-    // Метод для удаления учителя
+    // Удаление учителя
     private static void deleteTeacher() {
         int id = 0;
         boolean validId = false;
@@ -300,23 +273,17 @@ public class Main {
             }
         }
 
-        // Проверка существования учителя
         Optional<TeacherEntity> existingTeacher = teacherRepository.findById(id);
         if (existingTeacher.isEmpty()) {
             System.out.println("\nУчитель с ID " + id + " не найден.");
             return;
         }
 
-        // Вывод информации о нем
         System.out.println("\nНайден учитель: " + existingTeacher.get());
 
-        // Удаление (первое, обычное)
         teacherRepository.deleteById(id);
         System.out.println("Учитель с ID " + id + " успешно удален.");
 
-        // Тут демонстрация идемпотентности
-        // Повторное удаление того же id
-        // То есть, учителя уже нет, но метод не вызывает ошибку -> повторный вызов безопасен
         teacherRepository.deleteById(id);
         System.out.println("(идемпотентность: повторное удаление выполнено без ошибок)");
     }
