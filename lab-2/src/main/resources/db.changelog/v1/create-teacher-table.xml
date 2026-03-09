@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+
+    <!-- Первая миграция: создание таблицы teacher
+         changeSet имеет уникальный идентификатор (id) и автора
+         Liquibase отслеживает выполненные changeSet в таблице DATABASECHANGELOG -->
+
+    <changeSet id="1" author="sakunov">
+        <createTable tableName="teacher">
+            <column name="id" type="serial" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="experience_years" type="integer">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Добавляем check constraint для стажа -->
+        <sql>
+            ALTER TABLE teacher ADD CONSTRAINT check_experience_positive
+                CHECK (experience_years >= 0);
+        </sql>
+
+        <!-- Комментарий к изменению -->
+        <comment>Создание таблицы учителей со стажем</comment>
+    </changeSet>
+
+</databaseChangeLog>
