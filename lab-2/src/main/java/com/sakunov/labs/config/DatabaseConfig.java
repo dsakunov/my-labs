@@ -4,7 +4,6 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 import java.sql.SQLException;
 
@@ -22,24 +21,15 @@ public class DatabaseConfig {
         String username = System.getenv("DB_USERNAME");
         String password = System.getenv("DB_PASSWORD");
 
-        // Если переменные не заданы, используем значения по умолчанию
-        if (jdbcUrl == null) {
-            jdbcUrl = "jdbc:postgresql://localhost:5433/teacherdb";
-            log.warn("DB_URL не задан, используем значение по умолчанию: {}", jdbcUrl);
-        }
-        if (username == null) {
-            username = "teacher";
-            log.warn("DB_USERNAME не задан, используем значение по умолчанию: {}", username);
-        }
-        if (password == null) {
-            password = "teacher123";
-            log.warn("DB_PASSWORD не задан, используем значение по умолчанию");
+        if (jdbcUrl == null || username == null || password == null) {
+            log.error("Не заданы переменные окружения для подключения к бд!");
+            throw new RuntimeException("Не заданы переменные окружения для подключения к бд!");
         }
 
         try {
             // Загружаем драйвер
             Class.forName("org.postgresql.Driver");
-            log.info("PostgreSQL JDBC Driver зарегистрирован");
+            log.info("PostgreSQL JDBC Driver зарегистрирован.");
 
             // Настройка пула соединений
             HikariConfig config = new HikariConfig();
@@ -55,11 +45,11 @@ public class DatabaseConfig {
 
             // Создание пула
             dataSource = new HikariDataSource(config);
-            log.info("HikariCP connection pool инициализирован");
+            log.info("HikariCP connection pool инициализирован.");
 
         } catch (ClassNotFoundException e) {
-            log.error("PostgreSQL JDBC Driver не найден", e);
-            throw new RuntimeException("Driver not found", e);
+            log.error("PostgreSQL JDBC Driver не найден!", e);
+            throw new RuntimeException("PostgreSQL JDBC Driver не найден!", e);
         }
     }
 
@@ -72,7 +62,7 @@ public class DatabaseConfig {
     public void close() {
         if (dataSource != null && !dataSource.isClosed()) {
             dataSource.close();
-            log.info("HikariCP connection pool закрыт");
+            log.info("HikariCP connection pool закрыт.");
         }
     }
 }

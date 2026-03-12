@@ -13,25 +13,26 @@
     <artifactId>lab-2</artifactId>
 
     <dependencies>
-        <!-- PostgreSQL JDBC Driver -->
+        <!-- Драйвер PostgreSQL для JDBC -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
         </dependency>
 
-        <!-- HikariCP - connection pool -->
+        <!-- connection pool для бд (HikariCP) -->
         <dependency>
             <groupId>com.zaxxer</groupId>
             <artifactId>HikariCP</artifactId>
         </dependency>
 
-        <!-- Liquibase - миграции БД -->
+        <!-- Liquibase для миграций в бд -->
         <dependency>
             <groupId>org.liquibase</groupId>
             <artifactId>liquibase-core</artifactId>
         </dependency>
 
-        <!-- JDBI - упрощение работы с JDBC -->
+        <!-- ORM -->
         <dependency>
             <groupId>org.jdbi</groupId>
             <artifactId>jdbi3-core</artifactId>
@@ -41,11 +42,10 @@
             <artifactId>jdbi3-sqlobject</artifactId>
         </dependency>
 
-        <!-- SLF4J Simple - реализация логирования -->
+        <!-- Для логирования-->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
-            <scope>runtime</scope>
         </dependency>
     </dependencies>
 
@@ -66,7 +66,7 @@
                 </configuration>
             </plugin>
 
-            <!-- Плагин для создания fat JAR (опционально) -->
+            <!-- Плагин для создания fat JAR -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>

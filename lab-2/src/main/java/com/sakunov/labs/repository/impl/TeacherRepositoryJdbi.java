@@ -10,7 +10,6 @@ import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
@@ -37,8 +36,8 @@ public class TeacherRepositoryJdbi implements TeacherRepository {
             // Создаем объект, реализующий интерфейс TeacherDao
             this.dao = jdbi.onDemand(TeacherDao.class);
         } catch (SQLException e) {
-            log.error("Ошибка инициализации JDBI", e);
-            throw new RepositoryException("Ошибка инициализации JDBI", e);
+            log.error("Ошибка инициализации JDBI!", e);
+            throw new RepositoryException("Ошибка инициализации JDBI!", e);
         }
     }
 
@@ -52,7 +51,7 @@ public class TeacherRepositoryJdbi implements TeacherRepository {
             teacher.setId(id);
             return id;
         } catch (Exception e) {
-            throw new RepositoryException("Ошибка при сохранении учителя", e);
+            throw new RepositoryException("Ошибка при сохранении учителя!", e);
         }
     }
 
@@ -79,7 +78,7 @@ public class TeacherRepositoryJdbi implements TeacherRepository {
     @Override
     public boolean update(TeacherEntity teacher) {
         if (teacher.getId() == null) { // Защита от обновления объекта без id
-            log.warn("Попытка обновления учителя без id");
+            log.warn("Попытка обновления учителя без id!");
             return false;
         }
 

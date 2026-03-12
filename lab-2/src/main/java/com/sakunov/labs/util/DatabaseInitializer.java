@@ -17,6 +17,6 @@ public class DatabaseInitializer {
     // Создание таблицы через Liquibase миграции
     public void createTableIfNotExists() {
         databaseMigrator.runMigrations();
-        log.info("Таблица 'teacher' успешно создана или уже существует");
+        log.info("Таблица 'teacher' успешно создана или уже существует.");
     }
 }

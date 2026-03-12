@@ -18,13 +18,11 @@
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <!-- Версии плагинов -->
         <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.2.2</maven-surefire-plugin.version>
         <maven-shade-plugin.version>3.4.1</maven-shade-plugin.version>
         <exec-maven-plugin.version>3.1.0</exec-maven-plugin.version>
 
-        <!-- Версии библиотек -->
         <junit.version>5.9.2</junit.version>
         <postgresql.version>42.7.2</postgresql.version>
         <hikaricp.version>5.0.1</hikaricp.version>
@@ -34,28 +32,24 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- PostgreSQL JDBC Driver -->
             <dependency>
                 <groupId>org.postgresql</groupId>
                 <artifactId>postgresql</artifactId>
                 <version>${postgresql.version}</version>
             </dependency>
 
-            <!-- HikariCP - connection pool -->
             <dependency>
                 <groupId>com.zaxxer</groupId>
                 <artifactId>HikariCP</artifactId>
                 <version>${hikaricp.version}</version>
             </dependency>
 
-            <!-- Liquibase - миграции БД -->
             <dependency>
                 <groupId>org.liquibase</groupId>
                 <artifactId>liquibase-core</artifactId>
                 <version>${liquibase.version}</version>
             </dependency>
 
-            <!-- JDBI - упрощение работы с JDBC -->
             <dependency>
                 <groupId>org.jdbi</groupId>
                 <artifactId>jdbi3-core</artifactId>
@@ -67,7 +61,6 @@
                 <version>${jdbi.version}</version>
             </dependency>
 
-            <!-- SLF4J Simple - реализация логирования -->
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-simple</artifactId>
@@ -80,7 +73,6 @@
     <build>
         <pluginManagement>
             <plugins>
-                <!-- Плагин компиляции -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
@@ -90,21 +82,18 @@
                     </configuration>
                 </plugin>
 
-                <!-- Плагин для запуска тестов -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
                 </plugin>
 
-                <!-- Плагин для создания fat JAR -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
                     <version>${maven-shade-plugin.version}</version>
                 </plugin>
 
-                <!-- Плагин для запуска приложения -->
                 <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>exec-maven-plugin</artifactId>

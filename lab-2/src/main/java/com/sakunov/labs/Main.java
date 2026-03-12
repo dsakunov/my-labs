@@ -9,7 +9,6 @@ import com.sakunov.labs.repository.impl.TeacherRepositoryJdbi;
 import com.sakunov.labs.util.DatabaseInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
@@ -45,13 +44,13 @@ public class Main {
                 log.error("Причина: {}", e.getCause().getMessage());
             }
         } catch (Exception e) {
-            log.error("Неожиданная ошибка", e);
+            log.error("Неожиданная ошибка!", e);
         } finally {
             scanner.close();
             if (databaseConfig != null) {
                 databaseConfig.close(); // Закрываем пул соединений
             }
-            log.info("Приложение завершено");
+            log.info("Приложение завершено.");
         }
     }
 
@@ -60,7 +59,7 @@ public class Main {
         List<TeacherEntity> existingTeachers = teacherRepository.findAll();
 
         if (!existingTeachers.isEmpty()) {
-            log.info("В базе уже есть {} учителей. Пропускаем инициализацию", existingTeachers.size());
+            log.info("В базе уже есть {} учителей. Пропускаем инициализацию.", existingTeachers.size());
             return;
         }
 
@@ -87,7 +86,7 @@ public class Main {
             int id = teacherRepository.save(teacher);
             log.info("  {}. {} (id: {})", i+1, teacher, id);
         }
-        log.info("Инициализация завершена. В базе теперь {} учителей", teacherRepository.findAll().size());
+        log.info("Инициализация завершена. В базе теперь {} учителей.", teacherRepository.findAll().size());
     }
 
     // Запуск меню
@@ -148,12 +147,12 @@ public class Main {
             try {
                 experience = Integer.parseInt(scanner.nextLine().trim());
                 if (experience < 0) {
-                    System.out.println("Ошибка! Стаж не может быть отрицательным.\n");
+                    System.out.println("Ошибка. Стаж не может быть отрицательным!\n");
                 } else {
                     validInput = true;
                 }
             } catch (NumberFormatException e) {
-                System.out.println("Ошибка! Некорректное значение.\n");
+                System.out.println("Ошибка. Некорректное значение!\n");
             }
         }
 
@@ -175,7 +174,7 @@ public class Main {
                 id = Integer.parseInt(scanner.nextLine().trim());
                 validInput = true;
             } catch (NumberFormatException e) {
-                System.out.println("\nОшибка! Некорректное значение.");
+                System.out.println("\nОшибка. Некорректное значение!");
             }
         }
 
@@ -183,7 +182,7 @@ public class Main {
         if (teacherOpt.isPresent()) {
             System.out.println("Найден учитель: " + teacherOpt.get());
         } else {
-            System.out.println("Учитель с ID " + id + " не найден.");
+            System.out.println("Учитель с ID " + id + " не найден!");
         }
     }
 
@@ -191,7 +190,7 @@ public class Main {
     private static void findAllTeachers() {
         List<TeacherEntity> teachers = teacherRepository.findAll();
         if (teachers.isEmpty()) {
-            System.out.println("\nВ базе данных нет учителей.");
+            System.out.println("\nВ базе данных нет учителей!");
         } else {
             System.out.println("\nНайдено учителей: " + teachers.size());
             for (int i = 0; i < teachers.size(); i++) {
@@ -211,19 +210,19 @@ public class Main {
                 id = Integer.parseInt(scanner.nextLine().trim());
                 validId = true;
             } catch (NumberFormatException e) {
-                System.out.println("\nОшибка! Некорректное значение.");
+                System.out.println("\nОшибка. Некорректное значение!");
             }
         }
 
         // Проверка существования учителя
         Optional<TeacherEntity> existingTeacher = teacherRepository.findById(id);
         if (existingTeacher.isEmpty()) {
-            System.out.println("\nУчитель с ID " + id + " не найден. Обновление невозможно.");
+            System.out.println("\nУчитель с ID " + id + " не найден. Обновление невозможно!");
             return;
         }
 
         System.out.println("\nТекущие данные: " + existingTeacher.get());
-        System.out.println("(Оставьте поле пустым, чтобы оставить без изменений)");
+        System.out.println("(оставьте поле пустым, чтобы оставить без изменений)");
 
         System.out.print("Смена имени: " + existingTeacher.get().getName() + " -> ");
         String name = scanner.nextLine().trim();
@@ -239,11 +238,11 @@ public class Main {
             try {
                 experience = Integer.parseInt(expInput);
                 if (experience < 0) {
-                    System.out.println("\nОшибка! Стаж не может быть отрицательным. Оставлено прежнее значение.");
+                    System.out.println("\nОшибка. Стаж не может быть отрицательным! Оставлено прежнее значение.");
                     experience = existingTeacher.get().getExperienceYears();
                 }
             } catch (NumberFormatException e) {
-                System.out.println("Ошибка! Некорректное значение. Оставлено прежнее значение.");
+                System.out.println("Ошибка. Некорректное значение! Оставлено прежнее значение.");
             }
         }
 
@@ -251,10 +250,10 @@ public class Main {
         boolean success = teacherRepository.update(updatedTeacher);
 
         if (success) {
-            System.out.println("\nДанные учителя успешно обновлены!");
+            System.out.println("\nДанные учителя успешно обновлены.");
             System.out.println("Обновленный учитель: " + teacherRepository.findById(id).get());
         } else {
-            System.out.println("\nОшибка! Не удалось обновить данные учителя.");
+            System.out.println("\nОшибка. Не удалось обновить данные учителя!");
         }
     }
 
@@ -269,13 +268,13 @@ public class Main {
                 id = Integer.parseInt(scanner.nextLine().trim());
                 validId = true;
             } catch (NumberFormatException e) {
-                System.out.println("\nОшибка! Некорректное значение.");
+                System.out.println("\nОшибка. Некорректное значение!");
             }
         }
 
         Optional<TeacherEntity> existingTeacher = teacherRepository.findById(id);
         if (existingTeacher.isEmpty()) {
-            System.out.println("\nУчитель с ID " + id + " не найден.");
+            System.out.println("\nУчитель с ID " + id + " не найден!");
             return;
         }
 

@@ -1,15 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<databaseChangeLog
-        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
-        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
-        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                   https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.9.xsd">
 
-    <!--
-        Мастер-файл миграций Liquibase.
-        Включает все changeSet'ы в правильном порядке.
-        Каждый changeSet выполняется только один раз.
-    -->
+    <changeSet id="initial" author="sakunov">
+        <tagDatabase tag="initial"/>
+    </changeSet>
+
     <include file="db.changelog/v1/create-teacher-table.xml"/>
 
 </databaseChangeLog>

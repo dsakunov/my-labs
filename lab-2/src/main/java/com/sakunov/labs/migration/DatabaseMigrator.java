@@ -6,7 +6,6 @@ import liquibase.database.jvm.JdbcConnection;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.sql.Connection;
 
 // Класс для управления миграциями бд
@@ -22,7 +21,7 @@ public class DatabaseMigrator {
 
     // Запуск миграций
     public void runMigrations() {
-        log.info("Запуск Liquibase миграций");
+        log.info("Запуск Liquibase миграций...");
 
         try (Connection connection = databaseConfig.getConnection()) {
             Liquibase liquibase = new Liquibase(
@@ -32,11 +31,11 @@ public class DatabaseMigrator {
             );
 
             liquibase.update(); // Применяем все новые миграции
-            log.info("Liquibase миграции успешно применены");
+            log.info("Liquibase миграции успешно применены.");
 
         } catch (Exception e) {
-            log.error("Ошибка применения миграций БД", e);
-            throw new RuntimeException("Ошибка при выполнении миграций", e);
+            log.error("Ошибка применения миграций БД!", e);
+            throw new RuntimeException("Ошибка применения миграций БД!", e);
         }
     }
 }
