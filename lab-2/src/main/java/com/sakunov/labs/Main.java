@@ -3,20 +3,28 @@ package com.sakunov.labs;
 import com.sakunov.labs.config.DatabaseConfig;
 import com.sakunov.labs.entity.TeacherEntity;
 import com.sakunov.labs.exception.RepositoryException;
+import com.sakunov.labs.exception.ServiceException;
 import com.sakunov.labs.migration.DatabaseMigrator;
 import com.sakunov.labs.repository.TeacherRepository;
 import com.sakunov.labs.repository.impl.TeacherRepositoryJdbi;
+import com.sakunov.labs.service.TeacherService;
+import com.sakunov.labs.service.impl.TeacherServiceImpl;
 import com.sakunov.labs.util.DatabaseInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.util.List;
-import java.util.Optional;
 import java.util.Scanner;
 
 public class Main {
     private static final Logger log = LoggerFactory.getLogger(Main.class);
+
     private static final Scanner scanner = new Scanner(System.in);
+
     private static TeacherRepository teacherRepository;
+
+    private static TeacherService teacherService;
+
     private static DatabaseConfig databaseConfig;
 
     public static void main(String[] args) {
@@ -32,6 +40,9 @@ public class Main {
             // Создание репозитория
             teacherRepository = new TeacherRepositoryJdbi(databaseConfig);
 
+            // Создание сервиса
+            teacherService = new TeacherServiceImpl(teacherRepository);
+
             // Заполнение 10 учителями (если бд пуста)
             initializeWithTenTeachers();
 
@@ -43,20 +54,28 @@ public class Main {
             if (e.getCause() != null) {
                 log.error("Причина: {}", e.getCause().getMessage());
             }
+        } catch (ServiceException e) {
+            log.error("Ошибка сервиса: {}", e.getMessage());
+            System.out.println("Ошибка: " + e.getMessage());
         } catch (Exception e) {
             log.error("Неожиданная ошибка!", e);
+            System.out.println("Произошла непредвиденная ошибка.");
         } finally {
+
             scanner.close();
+
             if (databaseConfig != null) {
                 databaseConfig.close(); // Закрываем пул соединений
+                log.info("Пул соединений с БД закрыт.");
             }
+
             log.info("Приложение завершено.");
         }
     }
 
     // Заполнение бд 10 учителями
     private static void initializeWithTenTeachers() {
-        List<TeacherEntity> existingTeachers = teacherRepository.findAll();
+        List<TeacherEntity> existingTeachers = teacherService.findAll();
 
         if (!existingTeachers.isEmpty()) {
             log.info("В базе уже есть {} учителей. Пропускаем инициализацию.", existingTeachers.size());
@@ -79,14 +98,13 @@ public class Main {
         // Стаж работы
         int[] experiences = {10, 5, 15, 8, 12, 3, 20, 7, 25, 4};
 
-        log.info("Создание 10 тестовых учителей:");
+        log.info("Создание 10 тестовых учителей через сервис:");
 
         for (int i = 0; i < names.length; i++) {
-            TeacherEntity teacher = new TeacherEntity(names[i], experiences[i]);
-            int id = teacherRepository.save(teacher);
-            log.info("  {}. {} (id: {})", i+1, teacher, id);
+            int id = teacherService.save(names[i], experiences[i]);
+            log.info("  {}. {} (id: {})", i + 1, names[i], id);
         }
-        log.info("Инициализация завершена. В базе теперь {} учителей.", teacherRepository.findAll().size());
+        log.info("Инициализация завершена. В базе теперь {} учителей.", teacherService.findAll().size());
     }
 
     // Запуск меню
@@ -156,11 +174,13 @@ public class Main {
             }
         }
 
-        // Создаем объект и сохраняем в бд
-        TeacherEntity teacher = new TeacherEntity(name, experience);
-        int id = teacherRepository.save(teacher);
-        log.info("Учитель успешно создан! ID: {}", id);
-        System.out.println("Создан: " + teacher);
+        try {
+            int id = teacherService.save(name, experience);
+            log.info("Учитель успешно создан! ID: {}", id);
+            System.out.println("Создан учитель с ID: " + id);
+        } catch (ServiceException e) {
+            System.out.println("Ошибка при создании: " + e.getMessage());
+        }
     }
 
     // Поиск учителя по id
@@ -178,24 +198,28 @@ public class Main {
             }
         }
 
-        Optional<TeacherEntity> teacherOpt = teacherRepository.findById(id);
-        if (teacherOpt.isPresent()) {
-            System.out.println("Найден учитель: " + teacherOpt.get());
-        } else {
-            System.out.println("Учитель с ID " + id + " не найден!");
+        try {
+            TeacherEntity teacher = teacherService.findById(id);
+            System.out.println("Найден учитель: " + teacher);
+        } catch (ServiceException e) {
+            System.out.println("Ошибка: " + e.getMessage());
         }
     }
 
     // Вывод всех учителей
     private static void findAllTeachers() {
-        List<TeacherEntity> teachers = teacherRepository.findAll();
-        if (teachers.isEmpty()) {
-            System.out.println("\nВ базе данных нет учителей!");
-        } else {
-            System.out.println("\nНайдено учителей: " + teachers.size());
-            for (int i = 0; i < teachers.size(); i++) {
-                System.out.println("  " + (i+1) + ". " + teachers.get(i));
+        try {
+            List<TeacherEntity> teachers = teacherService.findAll();
+            if (teachers.isEmpty()) {
+                System.out.println("\nВ базе данных нет учителей!");
+            } else {
+                System.out.println("\nНайдено учителей: " + teachers.size());
+                for (int i = 0; i < teachers.size(); i++) {
+                    System.out.println("  " + (i + 1) + ". " + teachers.get(i));
+                }
             }
+        } catch (Exception e) {
+            System.out.println("Ошибка при получении списка: " + e.getMessage());
         }
     }
 
@@ -214,46 +238,41 @@ public class Main {
             }
         }
 
-        // Проверка существования учителя
-        Optional<TeacherEntity> existingTeacher = teacherRepository.findById(id);
-        if (existingTeacher.isEmpty()) {
-            System.out.println("\nУчитель с ID " + id + " не найден. Обновление невозможно!");
-            return;
-        }
+        try {
+            TeacherEntity existingTeacher = teacherService.findById(id);
+            System.out.println("\nТекущие данные: " + existingTeacher);
+            System.out.println("(оставьте поле пустым, чтобы оставить без изменений)");
 
-        System.out.println("\nТекущие данные: " + existingTeacher.get());
-        System.out.println("(оставьте поле пустым, чтобы оставить без изменений)");
-
-        System.out.print("Смена имени: " + existingTeacher.get().getName() + " -> ");
-        String name = scanner.nextLine().trim();
-        if (name.isEmpty()) {
-            name = existingTeacher.get().getName();
-        }
-
-        int experience = existingTeacher.get().getExperienceYears();
-        System.out.print("Смена стажа: " + experience + " -> ");
-        String expInput = scanner.nextLine().trim();
-
-        if (!expInput.isEmpty()) {
-            try {
-                experience = Integer.parseInt(expInput);
-                if (experience < 0) {
-                    System.out.println("\nОшибка. Стаж не может быть отрицательным! Оставлено прежнее значение.");
-                    experience = existingTeacher.get().getExperienceYears();
-                }
-            } catch (NumberFormatException e) {
-                System.out.println("Ошибка. Некорректное значение! Оставлено прежнее значение.");
+            System.out.print("Смена имени: " + existingTeacher.getName() + " -> ");
+            String name = scanner.nextLine().trim();
+            if (name.isEmpty()) {
+                name = existingTeacher.getName();
             }
-        }
 
-        TeacherEntity updatedTeacher = new TeacherEntity(id, name, experience);
-        boolean success = teacherRepository.update(updatedTeacher);
+            int experience = existingTeacher.getExperienceYears();
+            System.out.print("Смена стажа: " + experience + " -> ");
+            String expInput = scanner.nextLine().trim();
 
-        if (success) {
+            if (!expInput.isEmpty()) {
+                try {
+                    experience = Integer.parseInt(expInput);
+                    if (experience < 0) {
+                        System.out.println("\nОшибка. Стаж не может быть отрицательным! Оставлено прежнее значение.");
+                        experience = existingTeacher.getExperienceYears();
+                    }
+                } catch (NumberFormatException e) {
+                    System.out.println("Ошибка. Некорректное значение! Оставлено прежнее значение.");
+                }
+            }
+
+            TeacherEntity updatedTeacher = new TeacherEntity(id, name, experience);
+            teacherService.update(updatedTeacher);
+
             System.out.println("\nДанные учителя успешно обновлены.");
-            System.out.println("Обновленный учитель: " + teacherRepository.findById(id).get());
-        } else {
-            System.out.println("\nОшибка. Не удалось обновить данные учителя!");
+            System.out.println("Обновлённый учитель: " + teacherService.findById(id));
+
+        } catch (ServiceException e) {
+            System.out.println("Ошибка при обновлении: " + e.getMessage());
         }
     }
 
@@ -272,18 +291,18 @@ public class Main {
             }
         }
 
-        Optional<TeacherEntity> existingTeacher = teacherRepository.findById(id);
-        if (existingTeacher.isEmpty()) {
-            System.out.println("\nУчитель с ID " + id + " не найден!");
-            return;
+        try {
+            TeacherEntity existingTeacher = teacherService.findById(id);
+            System.out.println("\nНайден учитель: " + existingTeacher);
+
+            teacherService.deleteById(id);
+            System.out.println("Учитель с ID " + id + " успешно удалён.");
+
+            teacherService.deleteById(id);
+            System.out.println("(идемпотентность: повторное удаление выполнено без ошибок)");
+
+        } catch (ServiceException e) {
+            System.out.println("Ошибка: " + e.getMessage());
         }
-
-        System.out.println("\nНайден учитель: " + existingTeacher.get());
-
-        teacherRepository.deleteById(id);
-        System.out.println("Учитель с ID " + id + " успешно удален.");
-
-        teacherRepository.deleteById(id);
-        System.out.println("(идемпотентность: повторное удаление выполнено без ошибок)");
     }
 }

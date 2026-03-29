@@ -4,6 +4,7 @@ import com.sakunov.labs.entity.TeacherEntity;
 import org.jdbi.v3.sqlobject.config.RegisterRowMapper;
 import org.jdbi.v3.sqlobject.customizer.Bind;
 import org.jdbi.v3.sqlobject.customizer.BindBean;
+import org.jdbi.v3.sqlobject.statement.GetGeneratedKeys;
 import org.jdbi.v3.sqlobject.statement.SqlQuery;
 import org.jdbi.v3.sqlobject.statement.SqlUpdate;
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.Optional;
 public interface TeacherDao {
     // Вставка нового учителя, RETURNING id - получаем сгенерированный БД идентификатор
     @SqlUpdate("INSERT INTO teacher (name, experience_years) VALUES (:name, :experienceYears) RETURNING id")
+    @GetGeneratedKeys("id")
     int insert(@BindBean TeacherEntity teacher);
 
     // Поиск учителя по id, результат может отсутствовать -> Optional
